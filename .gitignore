@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+checkpoints/
+generated_samples/
 
 # Distribution / packaging
 .Python
