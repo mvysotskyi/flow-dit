@@ -7,7 +7,7 @@ from src.autoencoder import AutoEncoder, AutoEncoderParams
 
 
 def load_dit(dit_config: DitConfig, checkpoint_path: str, device) -> Dit:
-    with torch.device("meta" if torch.cuda.is_available() else device):
+    with torch.device("meta" if torch.cuda.is_available() and checkpoint_path else device):
         dit = Dit(dit_config)
 
     if checkpoint_path is not None:
@@ -19,7 +19,7 @@ def load_dit(dit_config: DitConfig, checkpoint_path: str, device) -> Dit:
     return dit
 
 def load_ae(ae_config: AutoEncoderParams, checkpoint_path: str, device) -> AutoEncoder:
-    with torch.device("meta" if torch.cuda.is_available() else device):
+    with torch.device("meta" if torch.cuda.is_available() and checkpoint_path else device):
         ae = AutoEncoder(ae_config)
 
     if checkpoint_path is not None:

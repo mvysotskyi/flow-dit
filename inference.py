@@ -7,7 +7,7 @@ from PIL import Image
 from src.dit import Dit
 from src.autoencoder import AutoEncoder, AutoEncoderParams
 from src.config import DitConfig, dit_configs, ae_configs
-from src.utils import load_ae
+from src.utils import load_dit, load_ae
 
 
 def generate(
@@ -43,28 +43,25 @@ def generate(
     decoded = decoded.clamp(-1.0, 1.0).permute(0, 2, 3, 1)
     
     imgs = (127.5 * (decoded + 1.0)).cpu().numpy()
-
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
     for idx, img in enumerate(imgs):
-        img = Image.fromarray((127.5 * (img + 1.0)).astype("uint8"))
+        img = Image.fromarray(img.astype("uint8"))
         img.save(os.path.join(save_path, f"generated_{idx}.png"))
 
 
 @torch.inference_mode()
 def main(labels: list[int], guidance_scale: float, num_denoising_steps: int):
     ae_conf: AutoEncoderParams = ae_configs["ae_256_ch16"]
-    ae: AutoEncoder = load_ae(ae_conf, "./checkpoints/ae_ch16.safetensors")
+    ae: AutoEncoder = load_ae(ae_conf, "./checkpoints/ae_ch16.safetensors", device="cuda")
     ae.requires_grad_(False)
     ae.eval()
-    ae = ae.to("cuda")
 
-    dic_config: DitConfig = dit_configs["dit_base_256_2_birds"]
-    dit: Dit = Dit(dic_config)
+    dit_config: DitConfig = dit_configs["dit_base_256_2_birds"]
+    dit: Dit = load_dit(dit_config, None, device="cuda")
     dit.requires_grad_(False)
     dit.eval()
-    dit = dit.to("cuda")
 
     generate(dit, ae, labels, guidance_scale, num_denoising_steps)
 

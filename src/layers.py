@@ -96,7 +96,7 @@ class ClassEmbedder(nn.Module):
 
     def forward(self, y):
         if self.training:
-            y = torch.where(torch.rand_like(y) < self.drop_probability, y, self.num_classes)
+            y = torch.where(torch.rand(y.shape[0], device=y.device) < self.drop_probability, y, self.num_classes)
         
         return self.embedding(y)
     

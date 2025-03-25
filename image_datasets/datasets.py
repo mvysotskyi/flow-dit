@@ -26,10 +26,13 @@ class BirdImageDataset(Dataset):
                             width, height = img.size
                             aspect_ratio = width / height
                             if 0.65 <= aspect_ratio <= 1.6 and min(width, height) >= 256:
-                                self.image_paths.append(img_path)
                                 self.labels.append(self._extract_label(root))
+                                self.image_paths.append(img_path)
                     except Exception as e:
                         print(f"Skipping {img_path}: {e}")
+
+        min_label_idx = min(self.labels)
+        self.labels = [idx - min_label_idx for idx in self.labels]
 
     def _extract_label(self, path):
         folder_name = os.path.basename(path)
