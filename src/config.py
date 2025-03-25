@@ -26,7 +26,7 @@ dit_configs = {
         in_channels=16,
         out_channels=16,
         num_classes=200,
-        condition_dropout_prob=0.1,
+        condition_dropout_prob=0.15,
         frequency_embedding_size=256
     ),
 }

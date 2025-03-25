@@ -34,7 +34,7 @@ def generate(
         x_double = torch.cat([x, x], dim=0)
         pred = dit(x_double, t, labels_double)
         pred_cond, pred_uncond = pred.chunk(2, dim=0)
-        pred = pred_cond
+        pred = pred_uncond + guidance_scale * (pred_cond - pred_uncond)
 
         x = x + dt * pred
         t += dt

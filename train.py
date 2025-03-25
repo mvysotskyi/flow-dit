@@ -27,6 +27,7 @@ def train(rank, world_size, dit, ae, dataloader, optimizer, training_config, che
     generate_every = checkpointing_config.generate_every
 
     bar = tqdm.tqdm(total=training_config.num_steps, position=rank, disable=(rank != 0))
+    loss_history = []
 
     for global_step in range(training_config.num_steps * training_config.gradient_accumulation_steps):
         try:
@@ -57,6 +58,9 @@ def train(rank, world_size, dit, ae, dataloader, optimizer, training_config, che
         
         bar.update(1)
         bar.set_description(f"Loss: {loss.item()}")
+
+        if rank == 0:
+            loss_history.append(loss.item())
         
         if rank == 0 and global_step % checkpoint_every == 0:
             state_dict = dit.module.state_dict()
@@ -65,10 +69,13 @@ def train(rank, world_size, dit, ae, dataloader, optimizer, training_config, che
         if rank == 0 and global_step % generate_every == 0:
             with torch.no_grad():
                 dit.eval()
-                images_save_path = os.path.join(checkpointing_config.save_dir, f"./samples/{global_step}")
+                images_save_path = os.path.join(checkpointing_config.save_dir, f"../samples/{global_step}")
                 os.makedirs(images_save_path, exist_ok=True)
                 generate_images(dit.module, ae, labels.detach().cpu().tolist(), device=device, save_path=images_save_path)
                 dit.train()
+
+    if rank == 0:
+        torch.save(loss_history, "loss_history.pth")
     
     bar.close()
 
@@ -92,7 +99,6 @@ def main():
     dic_config: DitConfig = dit_configs["dit_base_256_2_birds"]
     dit: Dit = load_dit(dic_config, None, device=device)
     dit.train()
-    # dit.requires_grad_(True)
 
     print(sum(p.numel() for p in dit.parameters() if not p.requires_grad))
 

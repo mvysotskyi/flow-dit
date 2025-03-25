@@ -21,4 +21,4 @@ optim:
 checkpointing:
   checkpoint_every: 10_000
   save_dir: /workspace/checkpoints
-  generate_every: 10_000
+  generate_every: 2000
