@@ -40,7 +40,7 @@ def train(rank, world_size, dit, ae, dataloader, optimizer, training_config, che
         labels = torch.LongTensor(labels).to(device)
 
         with torch.no_grad():
-            images = (images - 127.5) / 127.5
+            images = 2.0 * images - 1.0
             x_1 = ae.encode(images.to(torch.float32))
 
         x_0 = torch.randn_like(x_1)
@@ -84,7 +84,7 @@ def main():
     args = OmegaConf.load("training_configs/config.yaml")
 
     ae_conf: AutoEncoderParams = ae_configs["ae_256_ch16"]
-    ae_checkpoint_path = "./checkpoints/ae_ch16.safetensors"
+    ae_checkpoint_path = "/workspace/checkpoints/ae_ch16.safetensors"
     ae: AutoEncoder = load_ae(ae_conf, ae_checkpoint_path, device=device)
     ae.requires_grad_(False)
     ae.eval()

@@ -4,7 +4,7 @@ training:
   gradient_accumulation_steps: 1
 
 dataset:
-  root_dir: /workspace/data/birds
+  root_dir: /workspace/pvc/birds
   image_size: 256
   augment: true
 

@@ -34,7 +34,7 @@ def generate(
         x_double = torch.cat([x, x], dim=0)
         pred = dit(x_double, t, labels_double)
         pred_cond, pred_uncond = pred.chunk(2, dim=0)
-        pred = pred_uncond + guidance_scale * (pred_cond - pred_uncond)
+        pred = pred_cond
 
         x = x + dt * pred
         t += dt
@@ -54,7 +54,7 @@ def generate(
 @torch.inference_mode()
 def main(labels: list[int], guidance_scale: float, num_denoising_steps: int):
     ae_conf: AutoEncoderParams = ae_configs["ae_256_ch16"]
-    ae: AutoEncoder = load_ae(ae_conf, "./checkpoints/ae_ch16.safetensors", device="cuda")
+    ae: AutoEncoder = load_ae(ae_conf, "/workspace/checkpoints/ae_ch16.safetensors", device="cuda")
     ae.requires_grad_(False)
     ae.eval()
 
