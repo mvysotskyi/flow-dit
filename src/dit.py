@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import numpy as np
 from einops import rearrange
 
 from diffusers.models.embeddings import get_2d_sincos_pos_embed
@@ -35,21 +36,71 @@ class FinalLayer(nn.Module):
     def __init__(self, hidden_size: int, out_channels: int, patch_size: int):
         super().__init__()
         self.norm = nn.LayerNorm(hidden_size)
-        self.modulation = AdaLNZeroModulation(hidden_size, 1)
+        self.modulation = AdaLNZeroModulation(hidden_size, 1, 2)
         self.linear = nn.Linear(hidden_size, out_channels * patch_size * patch_size)
+        self.init_weights()
 
     def init_weights(self):
         nn.init.zeros_(self.linear.weight)
         nn.init.zeros_(self.linear.bias)
 
     def forward(self, x, c):
-        _, gamma, beta = self.modulation(c).chunk(3, dim=1)
+        gamma, beta = self.modulation(c).chunk(2, dim=1)
         
         x_norm_modulated = modulate(self.norm(x), beta, gamma)
         x = self.linear(x_norm_modulated)
 
         return x
 
+
+def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False, extra_tokens=0):
+    """
+    grid_size: int of the grid height and width
+    return:
+    pos_embed: [grid_size*grid_size, embed_dim] or [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
+    """
+    grid_h = np.arange(grid_size, dtype=np.float32)
+    grid_w = np.arange(grid_size, dtype=np.float32)
+    grid = np.meshgrid(grid_w, grid_h)  # here w goes first
+    grid = np.stack(grid, axis=0)
+
+    grid = grid.reshape([2, 1, grid_size, grid_size])
+    pos_embed = get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
+    if cls_token and extra_tokens > 0:
+        pos_embed = np.concatenate([np.zeros([extra_tokens, embed_dim]), pos_embed], axis=0)
+    return pos_embed
+
+
+def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
+    assert embed_dim % 2 == 0
+
+    # use half of dimensions to encode grid_h
+    emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])  # (H*W, D/2)
+    emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])  # (H*W, D/2)
+
+    emb = np.concatenate([emb_h, emb_w], axis=1) # (H*W, D)
+    return emb
+
+
+def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
+    """
+    embed_dim: output dimension for each position
+    pos: a list of positions to be encoded: size (M,)
+    out: (M, D)
+    """
+    assert embed_dim % 2 == 0
+    omega = np.arange(embed_dim // 2, dtype=np.float64)
+    omega /= embed_dim / 2.
+    omega = 1. / 10000**omega  # (D/2,)
+
+    pos = pos.reshape(-1)  # (M,)
+    out = np.einsum('m,d->md', pos, omega)  # (M, D/2), outer product
+
+    emb_sin = np.sin(out) # (M, D/2)
+    emb_cos = np.cos(out) # (M, D/2)
+
+    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
+    return emb
 
 class Dit(nn.Module):
     def __init__(self, config: DitConfig):
@@ -64,14 +115,14 @@ class Dit(nn.Module):
         self.final_layer = FinalLayer(config.hidden_size, config.out_channels, config.patch_size)
 
         self.dit_blocks = nn.ModuleList([DitBlock(config.hidden_size, config.num_attention_heads) for _ in range(config.depth)])
+        self.pos_embeddings = nn.Parameter(torch.zeros(1, 256, 768), requires_grad=False)
 
-        self.pos_embeddings = get_2d_sincos_pos_embed(
-            embed_dim=config.hidden_size, 
-            grid_size=self.config.input_size // self.config.patch_size, 
-            output_type="pt"
-        ).to(torch.float32)
-        self.pos_embeddings = nn.Parameter(self.pos_embeddings, requires_grad=False)
+        self.init_weights()
 
+    def init_weights(self):
+        pos_embed = get_2d_sincos_pos_embed(self.pos_embeddings.shape[-1], 16)
+        self.pos_embeddings.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+    
     def forward(self, x: torch.Tensor, t: torch.Tensor, labels: torch.Tensor):
         t_emb = self.timestep_embedder(t)
         c = self.label_embedder(labels)

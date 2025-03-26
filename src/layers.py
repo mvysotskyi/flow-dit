@@ -101,10 +101,11 @@ class ClassEmbedder(nn.Module):
         return self.embedding(y)
     
 class AdaLNZeroModulation(nn.Module):
-    def __init__(self, dim, n):
+    def __init__(self, dim, n, k: int = 3):
         super().__init__()
         self.activation = nn.SiLU()
-        self.linear = nn.Linear(dim, dim * n * 3, bias=True)
+        self.linear = nn.Linear(dim, dim * n * k, bias=True)
+        self.init_weights()
 
     def init_weights(self):
         nn.init.zeros_(self.linear.weight)
