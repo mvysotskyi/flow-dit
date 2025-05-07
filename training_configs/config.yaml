@@ -1,5 +1,5 @@
 training:
-  num_steps: 400_000
+  num_steps: 340_000
   batch_size: 32
   gradient_accumulation_steps: 1
 

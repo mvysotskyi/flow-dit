@@ -7,6 +7,7 @@ __pycache__/
 *.so
 checkpoints/
 generated_samples/
+legacy/
 
 # Distribution / packaging
 .Python
