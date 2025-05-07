@@ -6,7 +6,7 @@
 
 ## Description
 
-**DiT S/2** model trained on 256x256 resolution with 400k steps on NABirds dataset. 
+**DiT S/2** model trained on 256x256 resolution with 400k steps on NABirds dataset. We used [this](https://huggingface.co/stabilityai/sd-vae-ft-mse) autoencoder for the latent space. The model is based on the [Diffusion Transformer](https://arxiv.org/abs/2205.11487) architecture and uses a rectified flow to improve the quality of generated images.
 
 ## Training
 - 400k steps
