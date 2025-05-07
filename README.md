@@ -23,7 +23,3 @@ Using our inference script, you can generate images with the following command:
 ```bash
 python generate.py --labels 1 2 3 --guidance_scale 1.5 --num_denoising_steps 100
 ```
-
-## Weights
-
-We do not share weights here. You need to ask for them.
